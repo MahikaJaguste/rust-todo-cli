@@ -1,6 +1,11 @@
 use clap::{Parser, Subcommand};
-use std::fs::OpenOptions;
-use std::io::{self, Read, Write};
+use std::io::{self};
+
+// crate is root /src, lib is file/module name, then whatever we are using
+use todo::TodoList;
+
+mod csv_io;
+use csv_io::{load_list, save_list};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
@@ -11,90 +16,53 @@ struct Args {
 
 #[derive(Subcommand, Debug, Clone)]
 enum Commands {
-    Add { task_title: String },
-    Rm { task_id: u32 },
+    Add { title: String, priority: String },
     Ls,
+    Done { item_id: i32 },
+    Rm { item_id: i32 },
 }
 
-fn add_task(task_title: &String) -> Result<(), io::Error> {
-    // taking reference (immutable) to task_title to just access it
-
-    // using ? only when function returns result
-    // ? basically returns error in case of Err arm, or does Ok(..) and returns value
-    // since these are file operations, error is of type io.Error
-    // we have nothing to return, so Ok(()) returns a Result object with no value
-    // if it was Result<bool, ...>, then Ok(true) would work
-
-    let mut file = OpenOptions::new()
-        .append(true)
-        .create(true)
-        .open("tasks.txt")?;
-
-    let task_item = format!("{task_title}\n");
-    file.write_all(task_item.as_bytes())?;
-
-    println!("{file:?}");
-    return Ok(());
-}
-
-fn load_tasks() -> Result<Vec<String>, io::Error> {
-    let mut file = OpenOptions::new()
-        .write(true)
-        .read(true)
-        .create(true)
-        .open("tasks.txt")?;
-    // for create to work, write or append must be enabled
-
-    let mut contents = String::new();
-    file.read_to_string(&mut contents)?;
-
-    // since size of str not known at compile time, we need to make vector of &str
-
-    // why String instead of &str?
-    let mut list: Vec<String> = vec![];
-    for task in contents.lines() {
-        list.push(task.to_string());
+fn execute(args: Args, todo_list: &mut TodoList) -> Result<(), io::Error> {
+    match args.cmd {
+        Commands::Add { title, priority } => {
+            todo_list.add_item(title, priority)?;
+        }
+        Commands::Ls {} => {
+            todo_list.list_items()?;
+        }
+        Commands::Rm { item_id } => {
+            todo_list.remove_item(item_id)?;
+        }
+        Commands::Done { item_id } => {
+            todo_list.mark_as_done(item_id)?;
+        }
     }
-
-    return Ok(list);
+    Ok(())
 }
-
-fn list_tasks() -> Result<(), io::Error> {
-    // why String instead of &str?
-    let list: Vec<String> = load_tasks()?;
-
-    for index in 0..(list.len()) {
-        println!("{index}. {}", list[index]);
-    }
-
-    return Ok(());
-}
-
-fn remove_task(task_id: u32) {}
 
 fn main() {
     let args = Args::parse();
 
-    match args.cmd {
-        Commands::Add { task_title } => match add_task(&task_title) {
+    let mut todo_list = TodoList {
+        list: match load_list() {
+            Ok(list) => list,
             Err(e) => {
-                println!("Error in adding task, please try again");
-                println!("{e}");
-            }
-            Ok(()) => {
-                println!("Task added to file");
+                panic!("{e}");
             }
         },
-        Commands::Ls {} => match list_tasks() {
-            Err(e) => {
-                println!("Error in listing task, please try again");
-                println!("{e}");
-            }
-            Ok(()) => {}
-        },
-        Commands::Rm { task_id } => {
-            remove_task(task_id);
-            println!("Task {task_id} removed");
+    };
+
+    match execute(args, &mut todo_list) {
+        Ok(()) => {}
+        Err(e) => {
+            panic!("{e}");
         }
-    }
+    };
+
+    match save_list(todo_list) {
+        Ok(()) => {}
+        Err(e) => {
+            panic!("{e}");
+        }
+    };
 }
