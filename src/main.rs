@@ -22,6 +22,7 @@ enum Commands {
     Done { item_id: i32 },
     Rm { item_id: i32 },
     Clear,
+    Sort { sort_by: String },
 }
 
 fn execute(args: Args, todo_list: &mut TodoList) -> Result<(), io::Error> {
@@ -40,6 +41,9 @@ fn execute(args: Args, todo_list: &mut TodoList) -> Result<(), io::Error> {
         }
         Commands::Clear => {
             todo_list.clear_done_items()?;
+        }
+        Commands::Sort { sort_by } => {
+            todo_list.sort(sort_by)?;
         }
     }
     Ok(())

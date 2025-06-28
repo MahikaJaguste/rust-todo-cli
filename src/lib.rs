@@ -127,4 +127,37 @@ impl TodoList {
         self.list_items()?;
         Ok(())
     }
+
+    pub fn sort(self: &mut Self, sort_by: String) -> Result<(), Error> {
+        match sort_by.to_lowercase().as_str() {
+            "status" => self.sort_by_status()?,
+            "priority" => self.sort_by_priority()?,
+            _ => {
+                return Err(Error::new(
+                    ErrorKind::InvalidInput,
+                    "Sort_by key can be status or priority",
+                ));
+            }
+        }
+        self.list_items()?;
+        Ok(())
+    }
+
+    fn sort_by_status(self: &mut Self) -> Result<(), Error> {
+        // sort by key is stable
+        self.list.sort_by_key(|item| match item.status {
+            TodoStatus::Pending => 0,
+            TodoStatus::Done => 1,
+        });
+        Ok(())
+    }
+
+    fn sort_by_priority(self: &mut Self) -> Result<(), Error> {
+        self.list.sort_by_key(|item| match item.priority {
+            TodoPriority::High => 0,
+            TodoPriority::Medium => 1,
+            TodoPriority::Low => 2,
+        });
+        Ok(())
+    }
 }
