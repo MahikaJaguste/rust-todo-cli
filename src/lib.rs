@@ -1,4 +1,4 @@
-use fancy::printcoln;
+use ansi_term::Style;
 use serde::{Deserialize, Serialize};
 use std::fmt;
 use std::io::{Error, ErrorKind};
@@ -43,15 +43,11 @@ pub struct TodoList {
 
 impl TodoItem {
     pub fn print_item(self: &Self, index: usize) {
+        let item_line = format!("{}. {} {}", index + 1, self.title, self.priority);
         if self.status == TodoStatus::Done {
-            printcoln!(
-                "[strikethrough]{}. {} {}",
-                index + 1,
-                self.title,
-                self.priority
-            );
+            println!("{}", Style::new().dimmed().strikethrough().paint(item_line));
         } else {
-            printcoln!("{}. {} {}", index + 1, self.title, self.priority);
+            println!("{item_line}");
         }
     }
 }
