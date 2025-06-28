@@ -1,9 +1,40 @@
 use csv;
-use std::fs::OpenOptions;
+use dirs_next::data_local_dir;
+use std::fs::{self, OpenOptions};
 use std::io::Error;
+use std::path::PathBuf;
 use todo::{TodoItem, TodoList};
 
+fn get_todo_file_path() -> Result<PathBuf, Error> {
+    let mut dir = match data_local_dir() {
+        Some(dir) => dir,
+        None => {
+            return Err(Error::new(
+                std::io::ErrorKind::NotADirectory,
+                "Could not find a local data directory",
+            ));
+        }
+    };
+
+    dir.push("todo_cli");
+    match fs::create_dir_all(&dir) {
+        Ok(d) => d,
+        Err(_) => {
+            return Err(Error::new(
+                std::io::ErrorKind::NotADirectory,
+                "Could not create directory todo_cli",
+            ));
+        }
+    }
+
+    dir.push("todo_list.csv");
+
+    Ok(dir)
+}
+
 pub fn load_list() -> Result<Vec<TodoItem>, Error> {
+    let todo_file_path = get_todo_file_path()?;
+
     // using ? only when function returns result
     // ? basically returns error in case of Err arm, or does Ok(..) and returns value
     // since these are file operations, error is of type io.Error
@@ -13,7 +44,7 @@ pub fn load_list() -> Result<Vec<TodoItem>, Error> {
         .write(true)
         .read(true)
         .create(true)
-        .open("todo-list.csv")?;
+        .open(todo_file_path)?;
     // for create to work, write or append must be enabled
 
     let mut rdr = csv::Reader::from_reader(file);
@@ -36,11 +67,13 @@ pub fn load_list() -> Result<Vec<TodoItem>, Error> {
 }
 
 pub fn save_list(todo_list: TodoList) -> Result<(), Error> {
+    let todo_file_path = get_todo_file_path()?;
+
     let file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
-        .open("todo-list.csv")?;
+        .open(todo_file_path)?;
     // truncate is needed, as if current content is shorter than existing,
     // the leftover characters of original file will not be removed
 

@@ -19,12 +19,11 @@ enum TodoStatus {
 }
 
 #[derive(Debug, Serialize, Deserialize, EnumString)]
+#[strum(ascii_case_insensitive)]
 pub enum TodoPriority {
-    #[strum(ascii_case_insensitive)]
     High,
-    #[strum(ascii_case_insensitive, serialize = "med")]
+    #[strum(serialize = "med", serialize = "medium")]
     Medium,
-    #[strum(ascii_case_insensitive)]
     Low,
 }
 
