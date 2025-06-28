@@ -21,6 +21,7 @@ enum Commands {
     Ls,
     Done { item_id: i32 },
     Rm { item_id: i32 },
+    Clear,
 }
 
 fn execute(args: Args, todo_list: &mut TodoList) -> Result<(), io::Error> {
@@ -36,6 +37,9 @@ fn execute(args: Args, todo_list: &mut TodoList) -> Result<(), io::Error> {
         }
         Commands::Done { item_id } => {
             todo_list.mark_as_done(item_id)?;
+        }
+        Commands::Clear => {
+            todo_list.clear_done_items()?;
         }
     }
     Ok(())

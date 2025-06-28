@@ -42,6 +42,21 @@ pub struct TodoList {
     pub list: Vec<TodoItem>,
 }
 
+impl TodoItem {
+    pub fn print_item(self: &Self, index: usize) {
+        if self.status == TodoStatus::Done {
+            printcoln!(
+                "[strikethrough]{}. {} {}",
+                index + 1,
+                self.title,
+                self.priority
+            );
+        } else {
+            printcoln!("{}. {} {}", index + 1, self.title, self.priority);
+        }
+    }
+}
+
 impl TodoList {
     pub fn add_item(self: &mut Self, title: String, priority: String) -> Result<(), Error> {
         // taking reference (immutable) to title to just access it
@@ -64,6 +79,8 @@ impl TodoList {
         };
 
         self.list.push(item);
+        println!("Added item");
+        self.list_items()?;
 
         Ok(())
     }
@@ -71,16 +88,7 @@ impl TodoList {
     pub fn list_items(self: &Self) -> Result<(), Error> {
         for index in 0..(self.list.len()) {
             let item = &(self.list[index]);
-            if item.status == TodoStatus::Done {
-                printcoln!(
-                    "[strikethrough]{}. {} {}",
-                    index + 1,
-                    item.title,
-                    item.priority
-                );
-            } else {
-                printcoln!("{}. {} {}", index + 1, item.title, item.priority);
-            }
+            item.print_item(index);
         }
         Ok(())
     }
@@ -95,6 +103,8 @@ impl TodoList {
             ));
         } else {
             self.list[(item_id - 1) as usize].status = TodoStatus::Done;
+            println!("Marked item {} as done", item_id);
+            self.list_items()?;
         }
         Ok(())
     }
@@ -104,7 +114,17 @@ impl TodoList {
             return Err(Error::new(ErrorKind::InvalidData, "Invalid item id"));
         } else {
             self.list.remove((item_id - 1) as usize);
+            println!("Removed item {}", item_id);
+            self.list_items()?;
         }
+        Ok(())
+    }
+
+    pub fn clear_done_items(self: &mut Self) -> Result<(), Error> {
+        // to filter in place, retain is used
+        self.list.retain(|item| item.status != TodoStatus::Done);
+        println!("Cleared done items");
+        self.list_items()?;
         Ok(())
     }
 }
