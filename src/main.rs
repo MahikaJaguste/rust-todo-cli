@@ -9,6 +9,7 @@ use csv_io::{load_list, save_list};
 
 #[derive(Parser, Debug)]
 #[command(version, about, long_about = None)]
+// TODO What is this derive
 struct Args {
     #[command(subcommand)]
     cmd: Commands,
@@ -46,9 +47,12 @@ fn main() {
     let mut todo_list = TodoList {
         list: match load_list() {
             Ok(list) => list,
-            Err(e) => {
-                panic!("{e}");
-            }
+            Err(e) => match e.kind() {
+                io::ErrorKind::Other => {
+                    panic!("Todo list csv file has been corrupted.");
+                }
+                _ => panic!("{e}"),
+            },
         },
     };
 

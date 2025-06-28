@@ -1,21 +1,26 @@
 use csv;
-use std::error::Error;
 use std::fs::OpenOptions;
+use std::io::Error;
 use todo::{TodoItem, TodoList};
 
-// TODO:: what is box dyn error
-pub fn load_list() -> Result<Vec<TodoItem>, Box<dyn Error>> {
+pub fn load_list() -> Result<Vec<TodoItem>, Error> {
+    // using ? only when function returns result
+    // ? basically returns error in case of Err arm, or does Ok(..) and returns value
+    // since these are file operations, error is of type io.Error
+    // we have nothing to return, so Ok(()) returns a Result object with no value
+    // if it was Result<bool, ...>, then Ok(true) would work
     let file = OpenOptions::new()
         .write(true)
         .read(true)
         .create(true)
-        .open("tasks.csv")?;
+        .open("todo-list.csv")?;
     // for create to work, write or append must be enabled
 
     let mut rdr = csv::Reader::from_reader(file);
 
     let mut list: Vec<TodoItem> = vec![];
 
+    // in case of error, ? calls From(err) to convert csv::Error to io:Error of variant Other
     for result in rdr.deserialize() {
         let item: TodoItem = result?;
         list.push(item);
@@ -30,12 +35,12 @@ pub fn load_list() -> Result<Vec<TodoItem>, Box<dyn Error>> {
     // since size of str not known at compile time, we need to make vector of &str
 }
 
-pub fn save_list(todo_list: TodoList) -> Result<(), Box<dyn Error>> {
+pub fn save_list(todo_list: TodoList) -> Result<(), Error> {
     let file = OpenOptions::new()
         .write(true)
         .truncate(true)
         .create(true)
-        .open("tasks.csv")?;
+        .open("todo-list.csv")?;
     // truncate is needed, as if current content is shorter than existing,
     // the leftover characters of original file will not be removed
 

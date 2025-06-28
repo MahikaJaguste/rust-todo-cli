@@ -1,6 +1,9 @@
+use fancy::printcoln;
 use serde::{Deserialize, Serialize};
 use std::fmt;
-use std::io::{self};
+use std::io::{Error, ErrorKind};
+use std::str::FromStr;
+use strum_macros::EnumString;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct TodoItem {
@@ -9,25 +12,28 @@ pub struct TodoItem {
     status: TodoStatus,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
 enum TodoStatus {
     Pending,
     Done,
 }
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, EnumString)]
 pub enum TodoPriority {
+    #[strum(ascii_case_insensitive)]
     High,
+    #[strum(ascii_case_insensitive, serialize = "med")]
     Medium,
+    #[strum(ascii_case_insensitive)]
     Low,
 }
 
 impl fmt::Display for TodoPriority {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
-            TodoPriority::High => write!(f, "High"),
-            TodoPriority::Medium => write!(f, "Medium"),
-            TodoPriority::Low => write!(f, "Low"),
+            TodoPriority::High => write!(f, "‼️"),
+            TodoPriority::Medium => write!(f, "❕"), // ❗
+            TodoPriority::Low => write!(f, ""),
         }
     }
 }
@@ -37,25 +43,18 @@ pub struct TodoList {
 }
 
 impl TodoList {
-    pub fn add_item(self: &mut Self, title: String, priority: String) -> Result<(), io::Error> {
+    pub fn add_item(self: &mut Self, title: String, priority: String) -> Result<(), Error> {
         // taking reference (immutable) to title to just access it
 
-        // using ? only when function returns result
-        // ? basically returns error in case of Err arm, or does Ok(..) and returns value
-        // since these are file operations, error is of type io.Error
-        // we have nothing to return, so Ok(()) returns a Result object with no value
-        // if it was Result<bool, ...>, then Ok(true) would work
-        let priority_result = match priority.as_str() {
-            "high" => Ok(TodoPriority::High),
-            "medium" => Ok(TodoPriority::Medium),
-            "low" => Ok(TodoPriority::Low),
-            _ => Ok(TodoPriority::Low),
-        };
-
-        // TODO - error handling here
-        let priority = match priority_result {
+        // TODO - understand how the from_str enumstr works
+        let priority: TodoPriority = match TodoPriority::from_str(&priority) {
             Ok(p) => p,
-            Err(e) => e,
+            Err(_e) => {
+                return Err(Error::new(
+                    ErrorKind::InvalidData,
+                    "Priority can be high, medium, or low",
+                ));
+            }
         };
 
         let item = TodoItem {
@@ -69,33 +68,42 @@ impl TodoList {
         Ok(())
     }
 
-    pub fn list_items(self: &Self) -> Result<(), io::Error> {
+    pub fn list_items(self: &Self) -> Result<(), Error> {
         for index in 0..(self.list.len()) {
             let item = &(self.list[index]);
-            // TODO
-            println!("{index}. {} {}", item.title, item.priority);
+            if item.status == TodoStatus::Done {
+                printcoln!(
+                    "[strikethrough]{}. {} {}",
+                    index + 1,
+                    item.title,
+                    item.priority
+                );
+            } else {
+                printcoln!("{}. {} {}", index + 1, item.title, item.priority);
+            }
         }
         Ok(())
     }
 
-    pub fn mark_as_done(self: &mut Self, item_id: i32) -> Result<(), io::Error> {
-        if item_id < 0 || item_id >= self.list.len().try_into().unwrap() {
-            // TODO
-            // return Result::err(Error::new(io::ErrorKind::InvalidInput, "Invalid item id"));
-            println!("Invalid index")
+    pub fn mark_as_done(self: &mut Self, item_id: i32) -> Result<(), Error> {
+        if item_id <= 0 || item_id > self.list.len().try_into().unwrap() {
+            return Err(Error::new(ErrorKind::InvalidData, "Invalid item id"));
+        } else if self.list[(item_id - 1) as usize].status == TodoStatus::Done {
+            return Err(Error::new(
+                ErrorKind::Other,
+                "Item is already marked as done",
+            ));
         } else {
-            self.list[item_id as usize].status = TodoStatus::Done;
+            self.list[(item_id - 1) as usize].status = TodoStatus::Done;
         }
         Ok(())
     }
 
-    pub fn remove_item(self: &mut Self, item_id: i32) -> Result<(), io::Error> {
-        if item_id < 0 || item_id >= self.list.len().try_into().unwrap() {
-            // TODO
-            // return Result::err(Error::new(io::ErrorKind::InvalidInput, "Invalid item id"));
-            println!("Invalid index")
+    pub fn remove_item(self: &mut Self, item_id: i32) -> Result<(), Error> {
+        if item_id <= 0 || item_id > self.list.len().try_into().unwrap() {
+            return Err(Error::new(ErrorKind::InvalidData, "Invalid item id"));
         } else {
-            self.list.remove(item_id as usize);
+            self.list.remove((item_id - 1) as usize);
         }
         Ok(())
     }
