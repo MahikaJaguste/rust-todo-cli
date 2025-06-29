@@ -5,20 +5,20 @@ use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 use strum_macros::EnumString;
 
-#[derive(Debug, Serialize, Deserialize)]
+#[derive(Debug, Serialize, Deserialize, PartialEq)]
 pub struct TodoItem {
-    title: String,
-    priority: TodoPriority,
-    status: TodoStatus,
+    pub title: String,
+    pub priority: TodoPriority,
+    pub status: TodoStatus,
 }
 
 #[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
-enum TodoStatus {
+pub enum TodoStatus {
     Pending,
     Done,
 }
 
-#[derive(Debug, Serialize, Deserialize, EnumString)]
+#[derive(Debug, Serialize, Deserialize, EnumString, PartialEq)]
 #[strum(ascii_case_insensitive)]
 pub enum TodoPriority {
     High,
@@ -37,6 +37,7 @@ impl fmt::Display for TodoPriority {
     }
 }
 
+#[derive(Debug, PartialEq)]
 pub struct TodoList {
     pub list: Vec<TodoItem>,
 }
