@@ -1,31 +1,75 @@
+// cargo new todo created a Cargo.toml file which has name="todo"
+// Cargo.toml file means this is a package named todo. (package is collection of 1 or more crates)
+
+// convention that src/main.rs is the crate root of a binary crate with the same name as the package
+// convention that src/lib.rs, is the crate root of a library crate with the same name as the package
+
+// to use external crates
+// use <crate_name>::<module>::<item>;
 use clap::{Parser, Subcommand};
 use std::{
     io::{self},
     process,
 };
 
-// crate is root /src, lib is file/module name, then whatever we are using
-use todo::TodoList;
-
+// we do not have crate here since this module is in the same crate
+// declare the module and use it
 mod csv_io;
 use csv_io::{get_todo_file_path, load_list, save_list};
 
-#[derive(Parser, Debug)]
-#[command(version, about, long_about = None)]
-// TODO What is this derive
+// to use public components of library crate
+// directly use package name followed by what you want to use
+// works because package can have at most 1 library crate
+use todo::TodoList;
+
+// if we have something in main that we wanted to use elsewhere
+// pub struct Trial(i32);
+// we would import is using
+// use crate::Trial;
+// crate points to root src/
+
+#[derive(Parser)]
+// generates code that can parse command-line arguments into Args struct
+#[command(
+    version,
+    about = "Todo list to add items and mark them as done",
+    long_about = "A simple CLI todo list manager. Use subcommands to add, list, mark as done, remove, clear, or sort your tasks."
+)]
 struct Args {
+    // this field will hold subcommands
     #[command(subcommand)]
     cmd: Commands,
 }
 
-#[derive(Subcommand, Debug, Clone)]
+#[derive(Subcommand)]
+// generates code for parsing subcommands (like add, ls, done, etc.) into enum.
 enum Commands {
-    Add { title: String, priority: String },
+    #[command(about = "Add a new todo item")]
+    Add {
+        #[arg(help = "Title of the todo item")]
+        title: String,
+        #[arg(help = "Priority (high, med or medium, low)")]
+        priority: String,
+    },
+    #[command(about = "List all todo items")]
     Ls,
-    Done { item_id: i32 },
-    Rm { item_id: i32 },
+    #[command(about = "Mark a todo item as done")]
+    Done {
+        #[arg(help = "ID of the item to mark as done")]
+        item_id: i32,
+    },
+    #[command(about = "Remove a todo item")]
+    Rm {
+        #[arg(help = "ID of the item to remove")]
+        item_id: i32,
+    },
+    #[command(about = "Clear all done items")]
     Clear,
-    Sort { sort_by: String },
+    #[command(about = "Sort items by status or priority")]
+    Sort {
+        #[arg(help = "Sort by 'status' or 'priority'")]
+        sort_by: String,
+    },
 }
 
 fn execute(args: Args, todo_list: &mut TodoList) -> Result<(), io::Error> {

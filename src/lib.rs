@@ -5,7 +5,11 @@ use std::io::{Error, ErrorKind};
 use std::str::FromStr;
 use strum_macros::EnumString;
 
-#[derive(Debug, Serialize, Deserialize, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, PartialEq, Eq)]
+// derive is used to automatically generate trait implementations for this struct
+// trait means just a collection of methods that can be implemented for a type
+// eg. Debug trait has a fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), Error>; method
+// PartialEq has eq and ne methods
 pub struct TodoItem {
     pub title: String,
     pub priority: TodoPriority,
@@ -18,8 +22,11 @@ pub enum TodoStatus {
     Done,
 }
 
-#[derive(Debug, Serialize, Deserialize, EnumString, PartialEq)]
+#[derive(Debug, Serialize, Deserialize, EnumString, PartialEq, Eq)]
+// EnumString generates impl FromStr for TodoPriority with from_string method
 #[strum(ascii_case_insensitive)]
+// this attribute allows us to modify the above generated code
+// to allow multiple deserialisations to same variant
 pub enum TodoPriority {
     High,
     #[strum(serialize = "med", serialize = "medium")]
@@ -27,6 +34,8 @@ pub enum TodoPriority {
     Low,
 }
 
+// when we want to use println! on TodoPriority, it will internally call the fmt::Display::fmt() function on TodoPriority
+// here we are implementing that
 impl fmt::Display for TodoPriority {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
@@ -37,11 +46,13 @@ impl fmt::Display for TodoPriority {
     }
 }
 
-#[derive(Debug, PartialEq)]
+#[derive(Debug, PartialEq, Eq)]
 pub struct TodoList {
     pub list: Vec<TodoItem>,
 }
 
+// here we are not implementing fmt::Display::fmt() as we also want to pass index parameter
+// it is not printing an item on-off but as a part of a list
 impl TodoItem {
     pub fn print_item(self: &Self, index: usize) {
         let item_line = format!("{}. {} {}", index + 1, self.title, self.priority);
@@ -55,9 +66,11 @@ impl TodoItem {
 
 impl TodoList {
     pub fn add_item(self: &mut Self, title: String, priority: String) -> Result<(), Error> {
-        // taking reference (immutable) to title to just access it
+        // we borrow actual title and priority as these are not needed in the calling code
+        // so it is fine if we move their ownership
 
-        // TODO - understand how the from_str enumstr works
+        // self is &mut Self because we need to modify list
+        // and this same list is further needed in calling code
         let priority: TodoPriority = match TodoPriority::from_str(&priority) {
             Ok(p) => p,
             Err(_e) => {
@@ -83,6 +96,7 @@ impl TodoList {
 
     pub fn list_items(self: &Self) -> Result<(), Error> {
         for index in 0..(self.list.len()) {
+            // just passing immutable reference so that print_item can access it
             let item = &(self.list[index]);
             item.print_item(index);
         }
